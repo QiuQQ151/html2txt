@@ -97,9 +97,9 @@ char* extract_concrete_content( char * basic_html,  char * start_tag, char* conc
     char* ret = (char*)malloc( sizeof(char)*( concrete_end - concrete_start + 2 ) );
     *ret = '\0';
     *concrete_end = '\0';  //标记结束符
-    printf("内容%s\n",concrete_start);
+    //printf("内容%s\n",concrete_start);
     strcat( ret, concrete_start);  //写入字符
-    printf("内容提取完成%s\n",ret);
+    printf("内容提取完成\n");
 
     // 释放资源！
     free(chunk.data);
@@ -111,3 +111,34 @@ char* extract_concrete_content( char * basic_html,  char * start_tag, char* conc
 
 }
 
+/*
+//替换html指定位置的num个字符
+输入：
+dest：html
+soure：字符来源
+num：个数
+*/
+void html_fix(char* dest, char* source, int num )
+{
+  for(int i = 0; i<num; i++ ){
+       *(dest+i) = *(source+i);
+  }
+}
+
+/*
+整数转化为字符串
+*/
+// 整数转化为字符串的函数
+char* num2char(int num) {
+    // 计算所需的字符串长度（包括符号和'\0'结尾符）
+    int length = snprintf(NULL, 0, "%d", num) + 1;
+    // 动态分配内存以存储字符串
+    char* str = (char*)malloc(length);
+    if (str == NULL) {
+        perror("内存分配失败");
+        return NULL;
+    }
+    // 将整数转换为字符串并存入str
+    snprintf(str, length, "%d", num);
+    return str;  // 返回指向字符串的指针
+}

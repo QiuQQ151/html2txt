@@ -12,25 +12,33 @@
 time：时间，例子：20241013
 output_file: 输出文件操作符
 */
-void extract_xhrb(char* time, FILE * output_file)
-{
+void extract_xhrb(char* time, FILE * output_file,FILE *log)
+{  
+
+
+   log_record("开始新华日报抓取\n",log);
    // 资源请求 
    char* date = (char*)malloc( sizeof(char)*10); // 转换日期格式
    strncpy(date,time,6);
    *(date+6) = '/';
    strncpy(date+7,time+6,2);
    *(date+9) = '\0';
-   printf("输入日期%s,日期转化为：%s\n",time,date);
+   log_record("  日期转化为：",log);
+   fputs(date,log);
+   fputs("\n",log);
    
    // 文章起始标号获取
-   char* article_num = extract_article_num(date);
+   char* article_num = extract_article_num(date,log);
    int num = atoi(article_num);
-   printf("文章起始号：%d\n",num);
+
    
    // 文章内容循环抓取
-   extract_article( num , date, output_file);
+   extract_article( num , date, output_file,log);
+   
+   // 资源释放
+   free(date);
 
-
+   log_record("  新华日报抓取结束\n",log);   
 } 
 
 
@@ -41,8 +49,9 @@ date：例子：202410/14
 输出：
 article_num: char类型
 */
-char* extract_article_num(char* date)
+char* extract_article_num(char* date,FILE *log)
 {
+
    // 版面1地址组成
    char* basic_html_first = "https://xh.xhby.net/pc/layout/";
    char* basic_html_end = "/node_1.html";
@@ -53,19 +62,26 @@ char* extract_article_num(char* date)
    strcat(basic_html,basic_html_first); //前缀
    strcat(basic_html,date); //中间
    strcat(basic_html,basic_html_end); //后缀
-   printf("版面1地址%s\n",basic_html);
+
+
+   log_record("获取版面1地址：",log);   
+   fputs(basic_html,log);
+   fputs("\n",log);
 
    //抽取当天的文章起始号
    char* basic_start = "a href";
    char* basic_concrete1 =  "content_";
    char* basic_concrete2 =  ".html";
    
-   char* ret = extract_concrete_content( basic_html, basic_start,basic_concrete1,basic_concrete2);
-   printf("获取到当天文章起始号%s\n",ret);
+   char* ret = extract_concrete_content( basic_html, basic_start,basic_concrete1,basic_concrete2,log);
+
+   log_record("获取文章起始号：",log);   
+   fputs(ret,log);
+   fputs("\n\n",log);
+
 
    // 资源释放
    free(basic_html);
-
    return ret;
 }
 
@@ -78,7 +94,7 @@ output_file:
 输出：
 NULL
 */
-void extract_article(int num,char* date, FILE* output_file )
+void extract_article(int num,char* date, FILE* output_file ,FILE *log)
 {
     // 文章地址合成 例子：https://xh.xhby.net/pc/con/202410/14/content_1377538.html
     // 资源请求
@@ -90,15 +106,20 @@ void extract_article(int num,char* date, FILE* output_file )
     char* article_num ; //文章标号
     
     // 持续抓取
-    int i = 100;
-    while(i--)
-    {
+    int i = 0;
+    while(i<100)
+    {  
        article_num = num2char(num);
        html_fix(article_html+45,article_num,7);
-       printf("文章地址为：%s\n",article_html);
-       extract_title(article_html,output_file);
-       extract_content(article_html,output_file);
-       num++;
+
+      log_record("文章地址为：",log);
+      fputs(article_html,log);
+      fputs("\n",log);
+      extract_title(article_html,output_file,i,log);
+      extract_content(article_html,output_file,log);
+      fflush(output_file);
+      num++;
+      i++;
     }
 
 }
@@ -108,21 +129,30 @@ void extract_article(int num,char* date, FILE* output_file )
 输入：
 html:文章地址
 output_file:保存的地址
+count:文章计数
 */
-void extract_title(char *html, FILE *output_file)
+void extract_title(char *html, FILE *output_file, int count,FILE *log)
 {
    char* article_title;  //标题
-   article_title = extract_concrete_content( html,"newsdetatit","<h3>", "</h3>");
-   printf("抓取到文章标题：%s\n",article_title);
+   article_title = extract_concrete_content( html,"newsdetatit","<h3>", "</h3>",log);
+   if( *article_title == '\0'){
+      log_record("  标题抓取出错\n",log);
+      return;
+   }
+
+   log_record("抓取到文章标题：",log);
+   fputs(article_title,log);
+   fputs("\n",log);
 
    // 写入文件中
    // 开始地址，基本单元大小，写入个数，文件指针
+   fputs(num2char(count),output_file);   
    fputs("Title:",output_file);
    fputs(article_title, output_file);
    //插入换行符
-   fputs("\n    ",output_file);
-   printf("标题写入完成\n");
+   fputs("\n  ",output_file);
 
+   log_record("  标题写入完成\n",log);
    // 释放资源
    free(article_title);
 }
@@ -133,11 +163,16 @@ void extract_title(char *html, FILE *output_file)
 html:文章地址
 output_file:保存的地址
 */
-void extract_content(char *html, FILE *output_file)
+void extract_content(char *html, FILE *output_file,FILE *log)
 {
     char* article_content; //正文
-    article_content = extract_concrete_content( html,"<founder-content>","<!--enpcontent--><p>", "</p><!--");
-    printf("抓取到文章正文\n");
+    article_content = extract_concrete_content( html,"<founder-content>","<!--enpcontent--><p>", "</p><!--",log);
+    if( *article_content == '\0' ){
+      log_record("  正文抓取出错\n",log);
+      return;
+    }
+      
+   log_record("抓取到文章正文\n",log);
     
     // 写入正文内容
     // 去除中间的</p><p>
@@ -149,8 +184,11 @@ void extract_content(char *html, FILE *output_file)
         // 查找一段
         mid2 = strstr(mid1, "</p><p>");
         if ( !mid2 ) {
-           fprintf(stderr, "结束标签: %s\n", "</p><p>");
+           //fprintf(stderr, "结束标签: %s\n", "</p><p>");
            fputs("\n\n",output_file);
+ 
+           log_record("  正文内容处理结束\n\n",log);
+
            // 释放资源
            free(article_content);
            return;
@@ -158,7 +196,7 @@ void extract_content(char *html, FILE *output_file)
         // 写入一段数据
         fwrite( mid1 , 1, mid2 - mid1, output_file);
         //插入换行符
-        fputs("\n    ",output_file);
+        fputs("\n  ",output_file);
         // 更新
         mid1 = mid2 + strlen("</p><p>");;
     }

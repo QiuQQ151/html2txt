@@ -31,7 +31,14 @@ void extract_xhrb(char* time, FILE * output_file,FILE *log)
    char* article_num = extract_article_num(date,log);
    int num = atoi(article_num);
 
-   
+   fputs("每日新华日报\n",output_file);
+   fputs("日期：",output_file);
+   fputs(date,output_file);
+   fputs("\n起始编号：",output_file);
+   fputs(article_num,output_file);
+   fputs("\n制作：QQQ\n\n\n",output_file);
+
+
    // 文章内容循环抓取
    extract_article( num , date, output_file,log);
    
@@ -146,8 +153,9 @@ void extract_title(char *html, FILE *output_file, int count,FILE *log)
 
    // 写入文件中
    // 开始地址，基本单元大小，写入个数，文件指针
+   fputs("文章",output_file);
    fputs(num2char(count),output_file);   
-   fputs("Title:",output_file);
+   fputs(": ",output_file);
    fputs(article_title, output_file);
    //插入换行符
    fputs("\n  ",output_file);

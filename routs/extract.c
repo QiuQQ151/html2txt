@@ -20,6 +20,7 @@ struct Memory {
 
 /*
 回调函数：将HTTP响应数据写入内存
+处理文本的
 */
 size_t write_to_memory(void *contents, size_t size, size_t nmemb, void *userp,FILE *log) {
     size_t total_size = size * nmemb;
@@ -40,6 +41,13 @@ size_t write_to_memory(void *contents, size_t size, size_t nmemb, void *userp,FI
 }
 
 
+/*
+写入回调函数，将数据写入文件
+处理图片的
+*/
+size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
+    return fwrite(ptr, size, nmemb, stream);
+}
 
 
 /*
@@ -55,9 +63,6 @@ concrete_end_tag：具体位置（精确范围）
 
 char* extract_concrete_content( char * basic_html,  char * start_tag, char* concrete_start_tag, char* concrete_end_tag,FILE *log) 
 {
-
-    
-
     log_record("开始抓取指定内容\n",log);
     //  资源请求，最后要释放！
     CURL *curl;
@@ -69,7 +74,7 @@ char* extract_concrete_content( char * basic_html,  char * start_tag, char* conc
         log_record("  无法初始化libcurl，错误返回\n",log); 
         char* err =(char*)malloc( sizeof(char)*1 );
         *err = '\0';
-        return err;
+        return NULL;
     }
     log_record("  curl资源请求完成\n",log);
 
@@ -91,19 +96,30 @@ char* extract_concrete_content( char * basic_html,  char * start_tag, char* conc
         fflush(log);
         char* err =(char*)malloc( sizeof(char)*1 );
         *err = '\0';
-        return err;
+        return NULL;
     }
     log_record("  http请求完成\n",log);
 
 
     // 提取正文内容// 网页数据存放在chun.data中
-    // 第一步：大范围定位
+    // 第一步：大范围定位start
     char *start = strstr(chunk.data, start_tag); 
+    if( start == NULL ){
+        log_record("  大范围定位失败\n",log);
+        return NULL;
+    }
     // 第二步：小范围定位
     char *concrete_start = strstr(start, concrete_start_tag);
-    concrete_start+=strlen(concrete_start_tag); //跳过标签
-    char *concrete_end = strstr(concrete_start, concrete_end_tag);
-
+    if( concrete_start == NULL ){
+        log_record("  小范围左定位失败\n",log);
+        return NULL;
+    }
+    concrete_start+=strlen(concrete_start_tag); //跳过标签     //问题点
+    char *concrete_end = strstr(concrete_start, concrete_end_tag);  // 问题点
+    if( concrete_end == NULL ){
+        log_record("  小范围右定位失败\n",log);
+        return NULL;
+    }
     log_record("  内容定位完成\n",log);
 
     //读取具体的char
@@ -123,6 +139,38 @@ char* extract_concrete_content( char * basic_html,  char * start_tag, char* conc
     // 返回
     return ret;
 
+}
+
+/*
+下载指定网址的图片到指定保存位置
+*/
+void download_image(char *url, char *filename) 
+{
+    CURL *curl;
+    FILE *fp;
+    CURLcode res;
+
+    curl = curl_easy_init();
+    if (curl) {
+        fp = fopen(filename, "wb");
+        if (fp == NULL) {
+            fprintf(stderr, "无法打开文件 %s\n", filename);
+            return;
+        }
+
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+        
+        res = curl_easy_perform(curl);
+        if (res != CURLE_OK) {
+            fprintf(stderr, "下载图片失败: %s\n", curl_easy_strerror(res));
+        }
+
+        fclose(fp);
+        curl_easy_cleanup(curl);
+    }
 }
 
 /*

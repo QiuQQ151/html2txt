@@ -13,7 +13,7 @@ data: 日期 格式：年+月+日 例子：20241014
 int main(int argc, char *argv[]) {
     // 资源申请
     // 打开输出文件 //按日期命名
-    FILE * log_fp = fopen("./log/log.txt", "a+"); //追加模式a+
+    FILE * log_fp = fopen("./log/log.txt", "w"); //追加模式a+
     if (!log_fp) {
         fprintf(stderr, "无法打开log文件 %s\n", "./log/log.txt");
         return 1;
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
     // 定义文件名
     char* filename = (char*)malloc( sizeof(char)*20 );
     *filename = '\0';
-    strcat(filename,"./temp/新华日报");
+    strcat(filename,"./temp/XHRB");
     strcat(filename,time);
     strcat(filename,".txt");
     // 打开输出文件 //按日期命名

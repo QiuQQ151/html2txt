@@ -42,8 +42,7 @@ size_t write_to_memory(void *contents, size_t size, size_t nmemb, void *userp,FI
 
 
 /*
-写入回调函数，将数据写入文件
-处理图片的
+写入回调函数，将数据写入文件，处理图片的
 */
 size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
     return fwrite(ptr, size, nmemb, stream);

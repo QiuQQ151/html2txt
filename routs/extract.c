@@ -50,6 +50,43 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 
 
 /*
+// 用于提取指定日期的文章标号
+start_html:网址起始
+end_html:网址结束
+date:网址中间插入部分
+*/
+char* extract_num( char* start_html, char* end_html, char* date, FILE* log )
+{
+   // 资源请求
+   char* basic_html = (char*)malloc( sizeof(char)*( strlen(start_html) + strlen(date) + strlen(end_html) + 1 ) );
+   *basic_html = '\0';
+
+   strcat(basic_html,start_html); //前缀
+   strcat(basic_html,date); //中间
+   strcat(basic_html,end_html); //后缀
+
+
+   log_record("获取版面1地址：",log);   
+   fputs(basic_html,log);
+   fputs("\n",log);
+
+   //抽取当天的文章起始号
+   char* basic_start = "href=";
+   char* basic_concrete1 =  "content_";
+   char* basic_concrete2 =  ".html";
+   
+   char* ret = extract_concrete_content( basic_html, basic_start,basic_concrete1,basic_concrete2,log);
+
+   log_record("获取文章起始号：",log);   
+   fputs(ret,log);
+   fputs("\n\n",log);
+
+   // 资源释放
+   free(basic_html);
+   return ret;
+}
+
+/*
 提取版面HTML中的具体标签中的内容
 输入值：
 basic_html: 版面基本地址
@@ -99,7 +136,7 @@ char* extract_concrete_content( char * basic_html,  char * start_tag, char* conc
     }
     log_record("  http请求完成\n",log);
 
-
+    // printf("网页内容：%s\n",chunk.data);
     // 提取正文内容// 网页数据存放在chun.data中
     // 第一步：大范围定位start
     char *start = strstr(chunk.data, start_tag); 
@@ -126,7 +163,7 @@ char* extract_concrete_content( char * basic_html,  char * start_tag, char* conc
     *ret = '\0';
     *concrete_end = '\0';  //标记结束符
     strcat( ret, concrete_start);  //写入字符
-
+    //printf("内容为：%s\n",ret);
     log_record("  内容提取完成\n",log);
 
 

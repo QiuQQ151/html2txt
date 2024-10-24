@@ -34,48 +34,34 @@ int main(int argc, char *argv[]) {
     printf("系统时间：%s\n",local_time);   
 
     // 抓取时间设定
-    if( argc == 1 )// 未指定日期，抓取时间设定未系统时间
-    {
-        // 内容抓取并保存
+    if( argc == 1 ) {
+        // 未指定日期，抓取时间设定未系统时间
         log_record("---启动内容抓取----按系统当前时间抓取:",log_fp);
         html_fix(time,local_time,4);
         html_fix(time+4,local_time+5,2);
         html_fix(time+6,local_time+8,2);
         printf("抓取时间：%s\n",time);    
     }
-    else if( argc == 2 ) //指定了抓取日期
-    {
-        // 内容抓取并保存
+    else if( argc == 2 ) {
+        //指定了抓取日期
         log_record("---启动内容抓取----按指定日期抓取----------------\n",log_fp);
         strcat(time,argv[1]);     
         printf("抓取时间：%s\n",time);         
     }
-    else{   // 输入参数错误
-        // 资源释放
+    else{   
+        // 输入参数错误
         log_record("输入参数错误\n\n\n\n\n\n",log_fp);
         fclose(log_fp);
         printf("输入参数错误\n");
         exit(1);
     }
-
-    // 定义文件名
-    char* filename = (char*)malloc( sizeof(char)*20 );
-    *filename = '\0';
-    strcat(filename,"./temp/XHRB");
-    strcat(filename,time);
-    strcat(filename,".txt");
-    // 打开输出文件 //按日期命名
-    FILE *fp = fopen(filename, "w");
-    if (!fp) {
-        log_record("无法创建文章保存文件\n",log_fp);
-        return 1;
-    } 
-    extract_xhrb(time,fp,log_fp);        
-    printf("抓取日期：%s，存放地址：%s\n",time,"./temp/xhrb");     
-
+    
+    // 抓取函数，按不同新闻源依次执行
+    extract_nfrb(time, log_fp);  // 南方日报
+    extract_xhrb(time, log_fp);  // 新华日报
+  
     // 资源释放
     log_record("文件操作符资源释放\n\n\n\n\n\n",log_fp);
-    fclose(fp);
     fclose(log_fp);
     return 0;
 }
